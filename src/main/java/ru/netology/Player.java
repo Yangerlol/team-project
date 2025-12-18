@@ -22,7 +22,10 @@ public class Player {
     /** добавление игры игроку
      если игра уже была, никаких изменений происходить не должно */
     public void installGame(Game game) {
-        playedTime.put(game, 0);
+        // ИСПРАВЛЕНО: Добавлена проверка. Если игра уже есть, не перезаписываем (не обнуляем часы).
+        if (!playedTime.containsKey(game)) {
+            playedTime.put(game, 0);
+        }
     }
 
     /** игрок играет в игру game на протяжении hours часов
@@ -31,32 +34,46 @@ public class Player {
      возвращает суммарное количество часов, проигранное в эту игру.
      если игра не была установлена, то надо выкидывать RuntimeException */
     public int play(Game game, int hours) {
-        game.getStore().addPlayTime(name, hours);
-        if (playedTime.containsKey(game)) {
-            playedTime.put(game, playedTime.get(game));
-        } else {
-            playedTime.put(game, hours);
+        // ИСПРАВЛЕНО: Если игры нет в мапе (не установлена), выкидываем исключение по ТЗ.
+        if (!playedTime.containsKey(game)) {
+            throw new RuntimeException("Игра " + game.getTitle() + " не установлена");
         }
+
+        game.getStore().addPlayTime(name, hours);
+
+        // ИСПРАВЛЕНО: Часы теперь суммируются с уже имеющимися, а не перезаписываются.
+        int currentTime = playedTime.get(game);
+        playedTime.put(game, currentTime + hours);
+
         return playedTime.get(game);
     }
 
-    /** Метод принимает жанр игры (одно из полей объекта игры) и
-     суммирует время, проигранное во все игры этого жанра этим игроком */
+    /** Метод принимает жанр игры (строку) и суммирует все часы,
+     * проигранные в игры этого жанра этим игроком */
     public int sumGenre(String genre) {
         int sum = 0;
         for (Game game : playedTime.keySet()) {
             if (game.getGenre().equals(genre)) {
                 sum += playedTime.get(game);
-            } else {
-                sum = 0;
             }
         }
         return sum;
     }
 
-    /** Метод принимает жанр и возвращает игру этого жанра, в которую играли больше всего
-     Если в игры этого жанра не играли, возвращается null */
+    /** Метод принимает жанр и возвращает игру этого жанра, в которую играли больше всего.
+     * Если в игры этого жанра не играли, возвращает null */
     public Game mostPlayerByGenre(String genre) {
-        return null;
+        int maxTime = 0;
+        Game mostPlayed = null;
+        for (Game game : playedTime.keySet()) {
+            if (game.getGenre().equals(genre)) {
+                int time = playedTime.get(game);
+                if (time > maxTime) {
+                    maxTime = time;
+                    mostPlayed = game;
+                }
+            }
+        }
+        return mostPlayed;
     }
 }
